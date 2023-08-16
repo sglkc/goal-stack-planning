@@ -1,9 +1,8 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "module": "es2015",
-    "target": "es2015",
-    "lib": ["dom", "es2022"],
+    "module": "es2022",
+    "target": "es2022",
     "allowJs": true,
     "skipLibCheck": true,
     "declaration": true,

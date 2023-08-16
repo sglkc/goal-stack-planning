@@ -2,7 +2,14 @@
   "name": "@sglkc/gsp",
   "version": "1.0.0",
   "description": "Blocks world library implementation for Goal Stack Planning",
-  "keywords": ["ai", "artificial-intelligence", "goal-stack-planning", "gsp", "blocks-world"],
+  "keywords": [
+    "ai",
+    "artificial-intelligence",
+    "goal-stack-planning",
+    "gsp",
+    "blocks-world"
+  ],
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -12,20 +19,18 @@
     "type": "git",
     "url": "https://github.com/sglkc/goal-stack-planning.git"
   },
-  "author": {
-    "name": "sglkc",
-    "email": "sglkc@protonmail.com"
-  },
+  "author": "sglkc",
   "bugs": {
     "url": "https://github.com/sglkc/goal-stack-planning/issues"
   },
   "homepage": "https://github.com/sglkc/goal-stack-planning",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc && npm run minify",
+    "minify": "uglifyjs --compress --mangle --keep-fargs --output dist/GSP.min.js -- dist/GSP.js"
   },
-  "author": "sglkc",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "uglify-js": "^3.17.4"
   }
 }

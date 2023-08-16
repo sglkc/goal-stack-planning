@@ -4,9 +4,9 @@ export type StateObject = {
 }
 
 export default class GSP {
-  // Konstanta pada kondisi
-  #CONDITIONS = ['CLEAR', 'ON', 'ONTABLE', 'HOLDING', 'ARMEMPTY']
-  #OPERATIONS = ['STACK', 'UNSTACK', 'PICKUP', 'PUTDOWN']
+  // Konstanta kondisi pada stack
+  static CONDITIONS = ['CLEAR', 'ON', 'ONTABLE', 'HOLDING', 'ARMEMPTY']
+  static OPERATIONS = ['STACK', 'UNSTACK', 'PICKUP', 'PUTDOWN']
 
   // Progress menyelesaian
   STATE: Array<string[]> = []
@@ -35,8 +35,8 @@ export default class GSP {
     })
 
     this.maxIterations = maxIterations
-    this.initial = structuredClone(initial)
-    this.goal = structuredClone(goal)
+    this.initial = Object.assign({}, initial)
+    this.goal = Object.assign({}, goal)
   }
 
   // Method static private utk validasi objek state sebelum diproses
@@ -171,7 +171,7 @@ export default class GSP {
 
     // Jika nama element adalah suatu kondisi (ON, ONTABLE, ...) maka tambah
     // operator (STACK, PICKUP, ...) dan PRECONDITION untuk operator tersebut
-    if (this.#CONDITIONS.includes(elementName)) {
+    if (GSP.CONDITIONS.includes(elementName)) {
       switch (elementName) {
         case 'CLEAR': {
           this.STACK.pop()
@@ -202,8 +202,8 @@ export default class GSP {
 
     // Jika nama element adalah suatu operator (STACK, PICKUP, ...) maka pop
     // dari stack dan tambah ADD dan hapus DELETE sesuai PAD
-    if (this.#OPERATIONS.includes(elementName)) {
-      const newState = structuredClone(currentState)
+    if (GSP.OPERATIONS.includes(elementName)) {
+      const newState = Array.from(currentState)
 
       this.STACK.pop()
       this.QUEUE.push(currentElement)
