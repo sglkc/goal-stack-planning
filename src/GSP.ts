@@ -258,5 +258,3 @@ export default class GSP {
     console.log('iterasi lebih dari batas maksimum, memberhentikan')
   }
 }
-
-export {}

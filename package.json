@@ -10,8 +10,9 @@
     "blocks-world"
   ],
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/GSP.js",
+  "browser": "dist/GSP.min.js",
+  "types": "dist/GSP.d.ts",
   "files": [
     "/dist"
   ],
