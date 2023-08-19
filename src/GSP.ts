@@ -1,12 +1,41 @@
-export type StateObject = {
+export type GSPStateObject = {
   table: string[][],
   arm: string | null | undefined
 }
 
+type GSPCondition = typeof GSP.CONDITIONS[number]
+type GSPOperator = typeof GSP.OPERATORS[number]
+type GSPPADType = Record<
+  GSPOperator,
+  Record<'P' | 'A' | 'D', string[]>
+>
+
 export default class GSP {
   // Konstanta kondisi pada stack
-  static CONDITIONS = ['CLEAR', 'ON', 'ONTABLE', 'HOLDING', 'ARMEMPTY']
-  static OPERATIONS = ['STACK', 'UNSTACK', 'PICKUP', 'PUTDOWN']
+  static CONDITIONS = ['CLEAR', 'ON', 'ONTABLE', 'HOLDING', 'ARMEMPTY'] as const
+  static OPERATORS = ['STACK', 'UNSTACK', 'PICKUP', 'PUTDOWN'] as const
+  static PAD: GSPPADType = {
+    STACK: {
+      P: ['HOLDING(1)', 'CLEAR(2)'],
+      A: ['ON(1,2)', 'CLEAR(1)', 'ARMEMPTY'],
+      D: ['HOLDING(1)', 'CLEAR(2)']
+    },
+    UNSTACK: {
+      P: ['ON(1,2)', 'CLEAR(1)', 'ARMEMPTY'],
+      A: ['HOLDING(1)', 'CLEAR(2)'],
+      D: ['ON(1,2)', 'CLEAR(1)', 'ARMEMPTY']
+    },
+    PICKUP: {
+      P: ['ONTABLE(1)', 'CLEAR(1)', 'ARMEMPTY'],
+      A: ['HOLDING(1)'],
+      D: ['ONTABLE(1)', 'CLEAR(1)', 'ARMEMPTY']
+    },
+    PUTDOWN: {
+      P: ['HOLDING(1)'],
+      A: ['ONTABLE(1)', 'CLEAR(1)', 'ARMEMPTY'],
+      D: ['HOLDING(1)']
+    },
+  }
 
   // Progress menyelesaian
   STATE: Array<string[]> = []
@@ -15,11 +44,11 @@ export default class GSP {
 
   // Atribut yang bisa diubah user
   maxIterations: number = 10
-  initial: StateObject
-  goal: StateObject
+  initial: GSPStateObject
+  goal: GSPStateObject
 
   // Digunakan untuk menginisialisasi new GSP(initial, goal, 10)
-  constructor(initial: StateObject, goal: StateObject, maxIterations = 10) {
+  constructor(initial: GSPStateObject, goal: GSPStateObject, maxIterations = 10) {
     const initialBlocks = GSP.validateStateObject(initial)
     const goalBlocks = GSP.validateStateObject(goal)
 
@@ -40,7 +69,7 @@ export default class GSP {
   }
 
   // Method static private utk validasi objek state sebelum diproses
-  static validateStateObject(state: StateObject): Set<string> {
+  static validateStateObject(state: GSPStateObject): Set<string> {
     const blocks = new Set<string>()
 
     if (typeof state !== 'object') throw new Error('state harus berupa object')
@@ -65,7 +94,7 @@ export default class GSP {
   }
 
   // Print objek state ke console dengan ilustrasi
-  static printStateObject(state: StateObject, name?: string): void {
+  static printStateObject(state: GSPStateObject, name?: string): void {
     this.validateStateObject(state)
     const scene = []
     let height = 0
@@ -105,7 +134,7 @@ export default class GSP {
   }
 
   // Generate array kondisi dari objek state
-  generateStateConditions(state: StateObject): string[] {
+  generateStateConditions(state: GSPStateObject): string[] {
     const conditions: string[] = []
 
     state.table.forEach((stack) => {
@@ -115,13 +144,15 @@ export default class GSP {
 
       reversedStack.forEach((block, blockIndex) => {
         if (blockIndex === reversedStack.length - 1) {
-          conditions.push(`ONTABLE(${block})`)
-        } else {
-          const nextBlock = reversedStack.at(blockIndex + 1)
-          conditions.push(`ON(${block},${nextBlock})`)
+          return conditions.push(`ONTABLE(${block})`)
         }
+
+        const nextBlock = reversedStack.at(blockIndex + 1)
+        conditions.push(`ON(${block},${nextBlock})`)
+
+        if (blockIndex === 0) conditions.push(`CLEAR(${block})`)
       })
-      })
+    })
 
     if (state.arm) conditions.push(`HOLDING(${state.arm})`)
     else conditions.push(`ARMEMPTY`)
@@ -132,102 +163,201 @@ export default class GSP {
   // Print STATE, STACK, dan QUEUE saat ini
   printCurrentIteration(prettify = true): void {
     if (prettify) {
+      GSP.prettyPrintArray('STACK', [...this.STACK])
       GSP.prettyPrintArray('STATE', this.STATE.map(i => i.join(' ^ ')))
-      GSP.prettyPrintArray('STACK', [...this.STACK].reverse())
       GSP.prettyPrintArray('QUEUE', this.QUEUE)
     } else {
-      console.log('STATE', JSON.stringify([...this.STATE].reverse(), null, 1))
       console.log('STACK', JSON.stringify([...this.STACK].reverse(), null, 1))
+      console.log('STATE', JSON.stringify([...this.STATE].reverse(), null, 1))
     }
   }
 
-  findBFromStates(states: string[], name: string, a: string): string | false {
-    const regexp = new RegExp(`${name}\\(${a}`, 'i')
+  getBlockFromStates(
+    states: string[],
+    condition: GSPCondition,
+    [A, B]: Array<string | undefined>
+  ): Array<string | undefined> {
+    const matcher = A
+      ? `${condition}\\(${A}`
+      : B
+        ? `${condition}\\(.+,${B}\\)`
+        : `${condition}`
+
+    const regexp = new RegExp(matcher, 'i')
     const stateMatch = states.find((state) => state.match(regexp))
 
-    if (!stateMatch) return false
+    if (!stateMatch) return []
 
-    const [, b] = stateMatch.match(/,(\w+)\)/i) ?? []
+    const [, a, b] = stateMatch.match(/\w+/ig)
 
-    return b ?? false
+    return [a, b]
+  }
+
+  applyPAD(
+    pad: 'P' | 'A' | 'D' | 'AD',
+    states: typeof this.STATE[number],
+    operator: GSPOperator,
+    [A, B]: string[],
+  ): string[] {
+
+    const newState = Array.from(states)
+
+    if (pad === 'AD') {
+      const addedStates = this.applyPAD('A', states, operator, [A, B])
+      const finalStates = this.applyPAD('D', addedStates, operator, [A, B])
+
+      this.STATE.push(finalStates)
+      return
+    }
+
+    const conditions = GSP.PAD[operator][pad].map((condition) => {
+      return condition.replace('1', A).replace('2', B)
+    })
+
+    switch (pad) {
+      case 'P':
+        const nextOperand = B ? `,${B}` : ''
+
+        this.STACK.push(`${operator}(${A}${nextOperand})`)
+        this.STACK.push(conditions.join(' ^ '))
+        conditions.forEach((condition) => this.STACK.push(condition))
+
+        return []
+      case 'A':
+        conditions.forEach((condition) => newState.push(condition))
+        return newState
+      case 'D':
+        conditions.forEach((condition) => {
+          newState.splice(newState.indexOf(condition), 1)
+        })
+        return newState
+    }
   }
 
   //
   solveNextIteration(): void {
-    const currentElement = this.STACK.at(-1)
-    const currentState = this.STATE.at(-1)!
+    const currentSlot = this.STACK.at(-1)
+    const nextSlot = this.STACK.at(-2) ?? ''
+    const currentState = this.STATE.at(-1)
 
-    if (!currentElement) throw new Error('stack kosong, tidak dapat melanjutkan')
+    if (!currentSlot) throw new Error('stack kosong, tidak dapat melanjutkan')
 
-    const [elementName, A, B] = currentElement.match(/\w+/ig)!
+    const [slotName, A, B] = currentSlot.match(/\w+/ig)
+    const nextSlotMatches = nextSlot.match(/\w+/ig)
 
     this.printCurrentIteration()
     console.log('CURRENT STATE:', currentState)
-    console.log('CURRENT STACK:', currentElement)
+    console.log('CURRENT STACK:', currentSlot)
 
-    // Jika state saat ini terdapat element saat ini, maka pop dari stack dan
-    // selesaikan iterasi saat ini
-    if (currentState.includes(currentElement)) return void this.STACK.pop()
+    // Jika slot saat ini terpenuhi oleh state saat ini dan slot dibawahnya
+    // bukan operator, maka pop dari stack
+    // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 1
+    if (currentState.includes(currentSlot) && nextSlotMatches) {
+      console.log('kondisi 1')
+      const nextSlotName = nextSlotMatches[0] as GSPOperator
 
-    // Jika nama element adalah suatu kondisi (ON, ONTABLE, ...) maka tambah
-    // operator (STACK, PICKUP, ...) dan PRECONDITION untuk operator tersebut
-    if (GSP.CONDITIONS.includes(elementName)) {
-      switch (elementName) {
-        case 'CLEAR': {
-          this.STACK.pop()
-        } break;
-        case 'ON': {
-          this.STACK.push(`STACK(${A},${B})`)
-          this.STACK.push(`HOLDING(${A})`, `CLEAR(${B})`)
-        } break;
-        case 'ONTABLE': {
-          this.STACK.push(`PUTDOWN(${A})`)
-          this.STACK.push(`HOLDING(${A})`)
-        } break;
-        case 'HOLDING': {
-          if (currentState.includes(`ONTABLE(${A})`)) {
-            this.STACK.push(`PICKUP(${A})`)
-            this.STACK.push(`ONTABLE(${A})`, `CLEAR(${A})`, `ARMEMPTY`)
-          } else {
-            const b = this.findBFromStates(currentState, 'ON', A)
-            this.STACK.push(`UNSTACK(${A},${b})`)
-            this.STACK.push(`ON(${A},${b})`, `CLEAR(${A})`, `ARMEMPTY`)
-          }
-        } break;
-        case 'ARMEMPTY': {
-          this.STACK.pop()
-        } break;
+      if (!GSP.OPERATORS.includes(nextSlotName)) {
+        console.log('kondisi 1, memenuhi, pop')
+        return void this.STACK.pop()
       }
     }
 
-    // Jika nama element adalah suatu operator (STACK, PICKUP, ...) maka pop
-    // dari stack dan tambah ADD dan hapus DELETE sesuai PAD
-    if (GSP.OPERATIONS.includes(elementName)) {
-      const newState = Array.from(currentState)
+    // Jika state saat ini terdapat slot saat ini, maka pop dari stack
+    // Jika queue teratas tidak terdapat slot saat ini, maka masukkan
+    // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 4
+    if (GSP.OPERATORS.includes(slotName as GSPOperator)) {
+      console.log('kondisi 4, memenuhi, pop')
+      const operation = this.STACK.pop()
+      const [operator] = operation.match(/\w+/ig)
 
-      this.STACK.pop()
-      this.QUEUE.push(currentElement)
-
-      switch (elementName) {
-        case 'STACK':
-          newState.push(`ON(${A},${B})`, `ARMEMPTY`);
-          [`HOLDING(${A})`, `CLEAR(${B})`].forEach((d) => newState.splice(newState.indexOf(d), 1))
-          break;
-        case 'UNSTACK':
-          newState.push(`HOLDING(${A})`, `CLEAR(${B})`);
-          [`ON(${A},${B})`, `ARMEMPTY`].forEach((d) => newState.splice(newState.indexOf(d), 1))
-          break;
-        case 'PICKUP':
-          newState.push(`HOLDING(${A})`);
-          [`ONTABLE(${A})`, `ARMEMPTY`].forEach((d) => newState.splice(newState.indexOf(d), 1))
-          break;
-        case 'PUTDOWN':
-          newState.push(`ONTABLE(${A})`, `ARMEMPTY`);
-          [`HOLDING(${A})`].forEach((d) => newState.splice(newState.indexOf(d), 1))
-          break;
+      if (this.QUEUE.at(-1) !== operation) {
+        console.log('kondisi 4, queue tidak sama dengan operasi saat ini, push', operation)
+        this.QUEUE.push(operation)
+        this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
       }
 
-      this.STATE.push(newState)
+      return
+    }
+
+    // Jika slot berisi kondisi atau rangkaian kondisi dan berada di atas slot
+    // yang berisi operator, maka pop slot teratas dari stack dan pop slot
+    // selanjutnya dan masukkan ke queue, dan update current-state
+    // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 3
+    const nextSlotName = nextSlotMatches?.[0] as GSPOperator
+    if (currentSlot.includes('^') || (slotName === 'HOLDING' && GSP.OPERATORS.includes(nextSlotName))) {
+      console.log('kondisi 3, rangkaian kondisi atau holding')
+
+      this.STACK.pop()
+
+      const slotConditions = currentSlot.split(' ^ ')
+      const conflict = slotConditions.find((op) => !currentState.includes(op))
+
+      if (conflict) {
+        console.log('kondisi 3, konflik diteumakan', conflict)
+        return void this.STACK.push(conflict)
+      }
+
+      if (!this.STACK.length) return
+      if (GSP.OPERATORS.includes(nextSlotName)) {
+        console.log('kondisi 3, slot selanjutnya adalah operator')
+
+        const operation = this.STACK.pop()
+        const [operator, A, B] = operation.match(/\w+/ig)
+
+        console.log('kondisi 3, pop slot masukan operation ke queue', operation)
+        this.QUEUE.push(operation)
+        this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
+
+        return
+      }
+
+      console.log('kondisi 3, nevermind')
+    }
+
+    // Jika nama slot adalah suatu kondisi (ON, ONTABLE, ...) maka tambah
+    // operator (STACK, PICKUP, ...) dan PRECONDITION untuk operator tersebut
+    // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 2
+    if (GSP.CONDITIONS.includes(slotName as GSPCondition)) {
+      console.log('kondisi 2, tambah precondition dari', slotName)
+      this.STACK.pop()
+
+      switch (slotName) {
+        case 'CLEAR': {
+          const [newA] = this.getBlockFromStates(currentState, 'ON', [, A])
+          if (newA) {
+            this.applyPAD('P', currentState, 'UNSTACK', [newA, A])
+          } else {
+            this.applyPAD('P', currentState, 'PICKUP', [A])
+          }
+        } break
+        case 'ON': {
+          if (currentState.includes(`HOLDING`)) {
+            this.applyPAD('P', currentState, 'PUTDOWN', [A])
+          } else {
+            this.applyPAD('P', currentState, 'STACK', [A, B])
+          }
+        } break
+        case 'ONTABLE': {
+          this.applyPAD('P', currentState, 'PUTDOWN', [A])
+        } break
+        case 'HOLDING': {
+          const [, newB] = this.getBlockFromStates(currentState, 'ON', [A])
+
+          if (currentState.includes(`ONTABLE(${A})`)) {
+            this.applyPAD('P', currentState, 'PICKUP', [A])
+          } else if (newB) {
+            this.applyPAD('P', currentState, 'UNSTACK', [A, newB])
+          } else {
+            this.applyPAD('P', currentState, 'PUTDOWN', [A])
+          }
+        } break
+        case 'ARMEMPTY': {
+          const [newA] = this.getBlockFromStates(currentState, 'HOLDING', [])
+          this.applyPAD('P', currentState, 'PUTDOWN', [newA])
+        } break;
+      }
+
+      return
     }
   }
 
@@ -238,7 +368,7 @@ export default class GSP {
 
     // masukkan state dan stack 0
     this.STATE.push(initialConditions)
-    //this.STACK.push(goalConditions.join(' ^ '))
+    this.STACK.push(goalConditions.join(' ^ '))
     this.STACK.push(...goalConditions)
 
     // buat batas iterasi kalau infinit loopop
@@ -258,3 +388,4 @@ export default class GSP {
     console.log('iterasi lebih dari batas maksimum, memberhentikan')
   }
 }
+
