@@ -16,13 +16,13 @@ export default class GSP {
   static OPERATORS = ['STACK', 'UNSTACK', 'PICKUP', 'PUTDOWN'] as const
   static PAD: GSPPADType = {
     STACK: {
-      P: ['HOLDING(1)', 'CLEAR(2)'],
+      P: ['CLEAR(2)', 'HOLDING(1)'],
       A: ['ON(1,2)', 'CLEAR(1)', 'ARMEMPTY'],
-      D: ['HOLDING(1)', 'CLEAR(2)']
+      D: ['CLEAR(2)', 'HOLDING(1)']
     },
     UNSTACK: {
       P: ['ON(1,2)', 'CLEAR(1)', 'ARMEMPTY'],
-      A: ['HOLDING(1)', 'CLEAR(2)'],
+      A: ['CLEAR(2)', 'HOLDING(1)'],
       D: ['ON(1,2)', 'CLEAR(1)', 'ARMEMPTY']
     },
     PICKUP: {
@@ -38,55 +38,42 @@ export default class GSP {
   }
 
   // Progress menyelesaian
-  STATE: Array<string[]> = []
-  STACK: Array<string> = []
-  QUEUE: Array<string> = []
+  _state: string[][] = []
+  _stack: string[] = []
+  _queue: string[] = []
 
   // Atribut yang bisa diubah user
-  maxIterations: number = 10
+  maxIterations: number = 36
   initial: GSPStateObject
   goal: GSPStateObject
 
   // Digunakan untuk menginisialisasi new GSP(initial, goal, 10)
-  constructor(initial: GSPStateObject, goal: GSPStateObject, maxIterations = 10) {
-    const initialBlocks = GSP.validateStateObject(initial)
-    const goalBlocks = GSP.validateStateObject(goal)
-
-    // Cek jika block pada state initial dan goal ada perbedaan
-    if (initialBlocks.size !== goalBlocks.size) {
-      throw new Error('initial state dan goal state memiliki block yang berbeda')
-    }
-
-    initialBlocks.forEach((block) => {
-      if (!goalBlocks.has(block)) {
-        throw new Error('initial state dan goal state memiliki block yang berbeda')
-      }
-    })
-
+  constructor(initial: GSPStateObject, goal: GSPStateObject, maxIterations = 36) {
     this.maxIterations = maxIterations
     this.initial = Object.assign({}, initial)
     this.goal = Object.assign({}, goal)
+    this.validateStates()
   }
 
   // Method static private utk validasi objek state sebelum diproses
-  static validateStateObject(state: GSPStateObject): Set<string> {
+  static validateStateObject(state: GSPStateObject, name = 'state'): Set<string> {
     const blocks = new Set<string>()
 
-    if (typeof state !== 'object') throw new Error('state harus berupa object')
-    if (!Array.isArray(state.table)) throw new Error('state.table harus berupa array')
+    if (typeof state !== 'object') throw new Error(`${name} harus berupa object`)
+    if (!Array.isArray(state.table)) throw new Error(`${name}.table harus berupa array`)
     if (!(typeof state.arm === 'string' || [null, undefined].includes(state.arm))) {
-      throw new Error('state.arm harus berupa string, null, atau undefined')
+      throw new Error(`${name}.arm harus berupa string, null, atau undefined`)
     }
 
     state.table.forEach((stack) => {
       stack.forEach((block) => {
-        if (blocks.has(block)) throw new Error(`block ${block} ada duplikat`)
+        if (blocks.has(block)) throw new Error(`${name} block ${block} ada duplikat`)
         blocks.add(block)
       })
     })
 
     if (typeof state.arm === 'string') {
-      if (blocks.has(state.arm)) throw new Error(`block ${state.arm} ada di table dan arm`)
+      if (blocks.has(state.arm)) throw new Error(`${name} block ${state.arm} ada di table dan arm`)
       blocks.add(state.arm)
     }
 
@@ -121,15 +108,55 @@ export default class GSP {
     console.log(scene.join('\n'))
   }
 
-  // Print array ke console
-  static prettyPrintArray(...[a, b]: Array<string | string[]>): void {
-    const name = (typeof a === 'string' ? a : b as string) ?? ''
-    const array = typeof a === 'object' ? a : b as string[]
-    const string = array.map((item, i) => `${i + 1}) ${item}`).join('\n').trim()
+  // Cek jika initial state dan goal state tidak valid
+  validateStates() {
+    const initialBlocks = GSP.validateStateObject(this.initial, 'this.initial')
+    const goalBlocks = GSP.validateStateObject(this.goal, 'this.goal')
+
+    if (initialBlocks.size !== goalBlocks.size) {
+      throw new Error('initial state dan goal state memiliki block yang berbeda')
+    }
+
+    initialBlocks.forEach((block) => {
+      if (!goalBlocks.has(block)) {
+        throw new Error('initial state dan goal state memiliki block yang berbeda')
+      }
+    })
+  }
+
+  // Print STATE, STACK, dan QUEUE saat ini
+  printCurrentIteration(): void {
+    const colorizer = 'color: white; background-color: royalblue; font-size: 1.15rem'
+    const stack = Array.from(this._stack)
+      .reverse()
+      .map((item, i, { length }) => `${length - i}) ${item}`)
+      .join('\n')
+      .trim()
 
     console.log(
-      `%c${name}`, 'color: white; background-color: royalblue; font-size: 1.15rem',
-      '\n' + (array.length ? string : '> ARRAY KOSONG')
+      `%cSTACK`, colorizer,
+      '\n' + (this._stack.length ? stack : '> STACK KOSONG')
+    )
+
+    const state = this._state
+      .map((item) => item.sort((a, b) => b.localeCompare(a)))
+      .map((item, i) => `${i}) ` + item.join(' ^ '))
+      .join('\n')
+      .trim()
+
+    console.log(
+      `%cSTATE`, colorizer,
+      '\n' + (this._state.length ? state : '> STATE KOSONG')
+    )
+
+    const queue = this._queue
+      .map((item, i) => `${i + 1}) ${item}`)
+      .join('\n')
+      .trim()
+
+    console.log(
+      `%cQUEUE`, colorizer,
+      '\n' + (this._queue.length ? queue : '> QUEUE KOSONG')
     )
   }
 
@@ -160,18 +187,6 @@ export default class GSP {
     return conditions
   }
 
-  // Print STATE, STACK, dan QUEUE saat ini
-  printCurrentIteration(prettify = true): void {
-    if (prettify) {
-      GSP.prettyPrintArray('STACK', [...this.STACK])
-      GSP.prettyPrintArray('STATE', this.STATE.map(i => i.join(' ^ ')))
-      GSP.prettyPrintArray('QUEUE', this.QUEUE)
-    } else {
-      console.log('STACK', JSON.stringify([...this.STACK].reverse(), null, 1))
-      console.log('STATE', JSON.stringify([...this.STATE].reverse(), null, 1))
-    }
-  }
-
   getBlockFromStates(
     states: string[],
     condition: GSPCondition,
@@ -195,7 +210,7 @@ export default class GSP {
 
   applyPAD(
     pad: 'P' | 'A' | 'D' | 'AD',
-    states: typeof this.STATE[number],
+    states: typeof this._state[number],
     operator: GSPOperator,
     [A, B]: string[],
   ): string[] {
@@ -206,7 +221,7 @@ export default class GSP {
       const addedStates = this.applyPAD('A', states, operator, [A, B])
       const finalStates = this.applyPAD('D', addedStates, operator, [A, B])
 
-      this.STATE.push(finalStates)
+      this._state.push(finalStates)
       return
     }
 
@@ -218,9 +233,9 @@ export default class GSP {
       case 'P':
         const nextOperand = B ? `,${B}` : ''
 
-        this.STACK.push(`${operator}(${A}${nextOperand})`)
-        this.STACK.push(conditions.join(' ^ '))
-        conditions.forEach((condition) => this.STACK.push(condition))
+        this._stack.push(`${operator}(${A}${nextOperand})`)
+        this._stack.push(conditions.join(' ^ '))
+        conditions.forEach((condition) => this._stack.push(condition))
 
         return []
       case 'A':
@@ -234,45 +249,53 @@ export default class GSP {
     }
   }
 
-  //
-  solveNextIteration(): void {
-    const currentSlot = this.STACK.at(-1)
-    const nextSlot = this.STACK.at(-2) ?? ''
-    const currentState = this.STATE.at(-1)
+  // Reset state, stack, queue dan masukkan state dan stack dari user
+  initialize(): void {
+    this.validateStates()
 
+    const initialConditions = this.generateStateConditions(this.initial)
+    const goalConditions = this.generateStateConditions(this.goal)
+
+    this._state = []
+    this._stack = []
+    this._queue = []
+    this._state.push(initialConditions)
+    this._stack.push(goalConditions.join(' ^ '))
+    this._stack.push(...goalConditions)
+  }
+
+  // Lanjutkan penyelesaian ke iterasi selanjutnya
+  solveNextIteration(): void {
+    const currentSlot = this._stack.at(-1)
+    const nextSlot = this._stack.at(-2) ?? ''
+    const currentState = this._state.at(-1)
+
+    if (!currentState) throw new Error('state kosong, gunakan initialize() sebelum memanggil')
     if (!currentSlot) throw new Error('stack kosong, tidak dapat melanjutkan')
 
     const [slotName, A, B] = currentSlot.match(/\w+/ig)
     const nextSlotMatches = nextSlot.match(/\w+/ig)
 
     this.printCurrentIteration()
-    console.log('CURRENT STATE:', currentState)
-    console.log('CURRENT STACK:', currentSlot)
 
     // Jika slot saat ini terpenuhi oleh state saat ini dan slot dibawahnya
     // bukan operator, maka pop dari stack
     // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 1
     if (currentState.includes(currentSlot) && nextSlotMatches) {
-      console.log('kondisi 1')
       const nextSlotName = nextSlotMatches[0] as GSPOperator
 
-      if (!GSP.OPERATORS.includes(nextSlotName)) {
-        console.log('kondisi 1, memenuhi, pop')
-        return void this.STACK.pop()
-      }
+      if (!GSP.OPERATORS.includes(nextSlotName)) return void this._stack.pop()
     }
 
     // Jika state saat ini terdapat slot saat ini, maka pop dari stack
     // Jika queue teratas tidak terdapat slot saat ini, maka masukkan
     // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 4
     if (GSP.OPERATORS.includes(slotName as GSPOperator)) {
-      console.log('kondisi 4, memenuhi, pop')
-      const operation = this.STACK.pop()
+      const operation = this._stack.pop()
       const [operator] = operation.match(/\w+/ig)
 
-      if (this.QUEUE.at(-1) !== operation) {
-        console.log('kondisi 4, queue tidak sama dengan operasi saat ini, push', operation)
-        this.QUEUE.push(operation)
+      if (this._queue.at(-1) !== operation) {
+        this._queue.push(operation)
         this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
       }
 
@@ -285,75 +308,66 @@ export default class GSP {
     // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 3
     const nextSlotName = nextSlotMatches?.[0] as GSPOperator
     if (currentSlot.includes('^') || (slotName === 'HOLDING' && GSP.OPERATORS.includes(nextSlotName))) {
-      console.log('kondisi 3, rangkaian kondisi atau holding')
-
-      this.STACK.pop()
-
       const slotConditions = currentSlot.split(' ^ ')
       const conflict = slotConditions.find((op) => !currentState.includes(op))
 
-      if (conflict) {
-        console.log('kondisi 3, konflik diteumakan', conflict)
-        return void this.STACK.push(conflict)
-      }
+      this._stack.pop()
 
-      if (!this.STACK.length) return
+      if (conflict) return void this._stack.push(conflict)
+      if (!this._stack.length) return
       if (GSP.OPERATORS.includes(nextSlotName)) {
-        console.log('kondisi 3, slot selanjutnya adalah operator')
-
-        const operation = this.STACK.pop()
+        const operation = this._stack.pop()
         const [operator, A, B] = operation.match(/\w+/ig)
 
-        console.log('kondisi 3, pop slot masukan operation ke queue', operation)
-        this.QUEUE.push(operation)
+        this._queue.push(operation)
         this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
 
         return
       }
-
-      console.log('kondisi 3, nevermind')
     }
 
     // Jika nama slot adalah suatu kondisi (ON, ONTABLE, ...) maka tambah
     // operator (STACK, PICKUP, ...) dan PRECONDITION untuk operator tersebut
     // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 2
     if (GSP.CONDITIONS.includes(slotName as GSPCondition)) {
-      console.log('kondisi 2, tambah precondition dari', slotName)
-      this.STACK.pop()
+      const applyPreconditions = (operator: GSPOperator, blocks: string[]) =>
+        this.applyPAD('P', currentState, operator, blocks)
+
+      this._stack.pop()
 
       switch (slotName) {
         case 'CLEAR': {
           const [newA] = this.getBlockFromStates(currentState, 'ON', [, A])
           if (newA) {
-            this.applyPAD('P', currentState, 'UNSTACK', [newA, A])
+            applyPreconditions('UNSTACK', [newA, A])
           } else {
-            this.applyPAD('P', currentState, 'PICKUP', [A])
+            applyPreconditions('PICKUP', [A])
           }
         } break
         case 'ON': {
           if (currentState.includes(`HOLDING`)) {
-            this.applyPAD('P', currentState, 'PUTDOWN', [A])
+            applyPreconditions('PUTDOWN', [A])
           } else {
-            this.applyPAD('P', currentState, 'STACK', [A, B])
+            applyPreconditions('STACK', [A, B])
           }
         } break
         case 'ONTABLE': {
-          this.applyPAD('P', currentState, 'PUTDOWN', [A])
+          applyPreconditions('PUTDOWN', [A])
         } break
         case 'HOLDING': {
           const [, newB] = this.getBlockFromStates(currentState, 'ON', [A])
 
           if (currentState.includes(`ONTABLE(${A})`)) {
-            this.applyPAD('P', currentState, 'PICKUP', [A])
+            applyPreconditions('PICKUP', [A])
           } else if (newB) {
-            this.applyPAD('P', currentState, 'UNSTACK', [A, newB])
+            applyPreconditions('UNSTACK', [A, newB])
           } else {
-            this.applyPAD('P', currentState, 'PUTDOWN', [A])
+            applyPreconditions('PUTDOWN', [A])
           }
         } break
         case 'ARMEMPTY': {
           const [newA] = this.getBlockFromStates(currentState, 'HOLDING', [])
-          this.applyPAD('P', currentState, 'PUTDOWN', [newA])
+          applyPreconditions('PUTDOWN', [newA])
         } break;
       }
 
@@ -362,30 +376,24 @@ export default class GSP {
   }
 
   solveUntilFinished(): void {
-    const initialConditions = this.generateStateConditions(this.initial)
-    const goalConditions = this.generateStateConditions(this.goal)
+    const colorizer = 'color: white; background-color: green; font-size: 1.25rem;'
     let iteration = 0
 
-    // masukkan state dan stack 0
-    this.STATE.push(initialConditions)
-    this.STACK.push(goalConditions.join(' ^ '))
-    this.STACK.push(...goalConditions)
+    this.initialize()
 
     // buat batas iterasi kalau infinit loopop
-    while ((iteration < this.maxIterations) && this.STACK.length > 0) {
-      console.log(
-        `%cLANGKAH KE-${iteration}`,
-        'color: white; background-color: green; font-size: 1.25rem;'
-      )
+    while ((iteration < this.maxIterations) && this._stack.length > 0) {
+      console.log(`%cLANGKAH KE-${iteration}`, colorizer)
       this.solveNextIteration()
       console.log('------------------------------------------------------------')
       iteration++
     }
 
+    console.log('%cHasil iterasi terakhir:', colorizer)
     this.printCurrentIteration()
 
     if (iteration >= this.maxIterations)
-    console.log('iterasi lebih dari batas maksimum, memberhentikan')
+    throw new Error('iterasi lebih dari batas maksimum, memberhentikan')
   }
 }
 

@@ -18,13 +18,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/sglkc/goal-stack-planning.git"
+    "url": "https://github.com/sglkc/gsp.git"
   },
   "author": "sglkc",
   "bugs": {
-    "url": "https://github.com/sglkc/goal-stack-planning/issues"
+    "url": "https://github.com/sglkc/gsp/issues"
   },
-  "homepage": "https://github.com/sglkc/goal-stack-planning",
+  "homepage": "https://github.com/sglkc/gsp",
   "scripts": {
     "build": "tsc && npm run minify",
     "minify": "uglifyjs --compress --mangle --keep-fargs --output dist/GSP.min.js -- dist/GSP.js"
