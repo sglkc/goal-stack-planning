@@ -5,6 +5,7 @@
   "keywords": [
     "ai",
     "artificial-intelligence",
+    "planning",
     "goal-stack-planning",
     "gsp",
     "blocks-world"
@@ -13,9 +14,6 @@
   "main": "dist/GSP.js",
   "browser": "dist/GSP.min.js",
   "types": "dist/GSP.d.ts",
-  "files": [
-    "/dist"
-  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/sglkc/gsp.git"
