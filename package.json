@@ -1,17 +1,19 @@
 {
   "name": "@sglkc/gsp",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-beta.1",
   "description": "Blocks world library implementation for Goal Stack Planning",
   "keywords": [
     "ai",
     "artificial-intelligence",
     "planning",
     "goal-stack-planning",
-    "gsp",
-    "blocks-world"
+    "goal-stack-planner",
+    "block-world",
+    "block-world-problem"
   ],
   "type": "module",
   "main": "dist/GSP.js",
+  "module": "dist/GSP.js",
   "browser": "dist/GSP.min.js",
   "types": "dist/GSP.d.ts",
   "files": [
@@ -19,20 +21,22 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/sglkc/gsp.git"
+    "url": "https://github.com/sglkc/goal-stack-planning.git"
   },
   "author": "sglkc",
   "bugs": {
-    "url": "https://github.com/sglkc/gsp/issues"
+    "url": "https://github.com/sglkc/goal-stack-planning/issues"
   },
-  "homepage": "https://github.com/sglkc/gsp",
+  "homepage": "https://github.com/sglkc/goal-stack-planning",
   "scripts": {
-    "build": "tsc && npm run minify",
-    "minify": "uglifyjs --compress --mangle --keep-fargs --output dist/GSP.min.js -- dist/GSP.js"
+    "build": "rollup --config rollup.config.ts --configPlugin rollup-plugin-typescript2"
   },
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.1.6",
-    "uglify-js": "^3.17.4"
+    "@rollup/plugin-terser": "^0.4.3",
+    "rollup": "^3.28.0",
+    "rollup-plugin-typescript2": "^0.35.0",
+    "tslib": "^2.6.2",
+    "typescript": "^5.1.6"
   }
 }

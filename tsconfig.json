@@ -5,11 +5,11 @@
     "target": "es2022",
     "allowJs": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "strict": true,
-    "outDir": "dist"
+    "moduleResolution": "node",
+    "strict": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts",
+    "rollup.config.ts"
   ]
 }
