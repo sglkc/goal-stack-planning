@@ -10,6 +10,11 @@ type GSPPADType = Record<
   Record<'P' | 'A' | 'D', string[]>
 >
 
+export type GSPSolveOptions = {
+  draw?: boolean
+  logging?: boolean
+}
+
 export default class GSP {
   // Konstanta kondisi pada stack
   static CONDITIONS = ['CLEAR', 'ON', 'ONTABLE', 'HOLDING', 'ARMEMPTY'] as const
@@ -88,7 +93,7 @@ export default class GSP {
 
     if (name) console.log('%c' + name, 'color: white; font-weight: bold; font-size: 1rem;')
 
-    scene.push('ARM: ' + (state.arm ?? 'KOSONG'))
+    scene.push('ARM: ' + (state.arm ?? 'KOSONG'), '')
 
     // Cari tumpukan dengan block terbanyak (tertinggi)
     state.table.forEach(({ length }) =>
@@ -105,7 +110,7 @@ export default class GSP {
 
     // Buat tanah dan print ke console
     scene.push(`-`.repeat(6 * state.table.length - 1))
-    console.log(scene.join('\n'))
+    console.log('%c' + scene.join('\n'), 'font-size: 0.8rem')
   }
 
   // Cek jika initial state dan goal state tidak valid
@@ -124,44 +129,8 @@ export default class GSP {
     })
   }
 
-  // Print STATE, STACK, dan QUEUE saat ini
-  printCurrentIteration(): void {
-    const colorizer = 'color: white; background-color: royalblue; font-size: 1.15rem'
-    const stack = Array.from(this._stack)
-      .reverse()
-      .map((item, i, { length }) => `${length - i}) ${item}`)
-      .join('\n')
-      .trim()
-
-    console.log(
-      `%cSTACK`, colorizer,
-      '\n' + (this._stack.length ? stack : '> STACK KOSONG')
-    )
-
-    const state = this._state
-      .map((item) => item.sort((a, b) => b.localeCompare(a)))
-      .map((item, i) => `${i}) ` + item.join(' ^ '))
-      .join('\n')
-      .trim()
-
-    console.log(
-      `%cSTATE`, colorizer,
-      '\n' + (this._state.length ? state : '> STATE KOSONG')
-    )
-
-    const queue = this._queue
-      .map((item, i) => `${i + 1}) ${item}`)
-      .join('\n')
-      .trim()
-
-    console.log(
-      `%cQUEUE`, colorizer,
-      '\n' + (this._queue.length ? queue : '> QUEUE KOSONG')
-    )
-  }
-
   // Generate array kondisi dari objek state
-  generateStateConditions(state: GSPStateObject): string[] {
+  static generateStateConditions(state: GSPStateObject): string[] {
     const conditions: string[] = []
 
     state.table.forEach((stack) => {
@@ -185,6 +154,43 @@ export default class GSP {
     else conditions.push(`ARMEMPTY`)
 
     return conditions
+  }
+
+  // Membuat state object dari state array string
+  static generateStateObject(states: string[]): GSPStateObject {
+    const stacks: string[][] = []
+    const sorted = states.sort((a, b) => a.localeCompare(b))
+    const object: GSPStateObject = {
+      arm: null,
+      table: []
+    }
+
+    sorted.forEach((state) => {
+      const [operator, A, B] = state.match(/\w+/ig)
+
+      switch (operator) {
+        case 'ARMEMPTY': break
+        case 'HOLDING':
+          object.arm = A
+          break
+        case 'ONTABLE':
+          object.table.push([A])
+          break
+        case 'ON':
+          stacks.push([A, B])
+          break
+      }
+    })
+
+    stacks.forEach(([A, B]) => object.table.find((tb) => tb.at(-1) === B).push(A))
+
+    return object
+  }
+
+  // Membuat state object dari state saat ini
+  getCurrentStateObject(): GSPStateObject {
+    const currentState = this._state.at(-1)
+    return currentState ? GSP.generateStateObject(currentState) : this.initial
   }
 
   getBlockFromStates(
@@ -249,12 +255,48 @@ export default class GSP {
     }
   }
 
+  // Print STATE, STACK, dan QUEUE saat ini
+  printCurrentIteration(): void {
+    const colorizer = 'color: white; background-color: royalblue; font-size: 1rem'
+    const stack = Array.from(this._stack)
+      .reverse()
+      .map((item, i, { length }) => `${length - i}) ${item}`)
+      .join('\n')
+      .trim()
+
+    console.log(
+      `%cSTACK`, colorizer,
+      '\n' + (this._stack.length ? stack : '> STACK KOSONG')
+    )
+
+    const state = this._state
+      .map((item) => item.sort((a, b) => b.localeCompare(a)))
+      .map((item, i) => `${i}) ` + item.join(' ^ '))
+      .join('\n')
+      .trim()
+
+    console.log(
+      `%cSTATE`, colorizer,
+      '\n' + (this._state.length ? state : '> STATE KOSONG')
+    )
+
+    const queue = this._queue
+      .map((item, i) => `${i + 1}) ${item}`)
+      .join('\n')
+      .trim()
+
+    console.log(
+      `%cQUEUE`, colorizer,
+      '\n' + (this._queue.length ? queue : '> QUEUE KOSONG')
+    )
+  }
+
   // Reset state, stack, queue dan masukkan state dan stack dari user
-  initialize(): void {
+  prepare(): void {
     this.validateStates()
 
-    const initialConditions = this.generateStateConditions(this.initial)
-    const goalConditions = this.generateStateConditions(this.goal)
+    const initialConditions = GSP.generateStateConditions(this.initial)
+    const goalConditions = GSP.generateStateConditions(this.goal)
 
     this._state = []
     this._stack = []
@@ -265,18 +307,19 @@ export default class GSP {
   }
 
   // Lanjutkan penyelesaian ke iterasi selanjutnya
-  solveNextIteration(): void {
+  solveNextIteration(options: GSPSolveOptions = {}): void {
     const currentSlot = this._stack.at(-1)
     const nextSlot = this._stack.at(-2) ?? ''
     const currentState = this._state.at(-1)
 
-    if (!currentState) throw new Error('state kosong, gunakan initialize() sebelum memanggil')
+    if (!currentState) throw new Error('state kosong, panggil prepare() dahulu')
     if (!currentSlot) throw new Error('stack kosong, tidak dapat melanjutkan')
 
     const [slotName, A, B] = currentSlot.match(/\w+/ig)
     const nextSlotMatches = nextSlot.match(/\w+/ig)
 
-    this.printCurrentIteration()
+    if (options.draw && options.logging) GSP.printStateObject(this.getCurrentStateObject())
+    if (options.logging) this.printCurrentIteration()
 
     // Jika slot saat ini terpenuhi oleh state saat ini dan slot dibawahnya
     // bukan operator, maka pop dari stack
@@ -297,6 +340,8 @@ export default class GSP {
       if (this._queue.at(-1) !== operation) {
         this._queue.push(operation)
         this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
+
+        if (options.draw && !options.logging) GSP.printStateObject(this.getCurrentStateObject())
       }
 
       return
@@ -321,6 +366,8 @@ export default class GSP {
 
         this._queue.push(operation)
         this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
+
+        if (options.draw && !options.logging) GSP.printStateObject(this.getCurrentStateObject())
 
         return
       }
@@ -368,29 +415,30 @@ export default class GSP {
         case 'ARMEMPTY': {
           const [newA] = this.getBlockFromStates(currentState, 'HOLDING', [])
           applyPreconditions('PUTDOWN', [newA])
-        } break;
+        } break
       }
 
       return
     }
   }
 
-  solveUntilFinished(): void {
-    const colorizer = 'color: white; background-color: green; font-size: 1.25rem;'
+  solveUntilFinished(options: GSPSolveOptions = {}): void {
+    const colorizer = 'color: white; background-color: green; font-size: 1.05rem;'
     let iteration = 0
 
-    this.initialize()
+    this.prepare()
 
     // buat batas iterasi kalau infinit loopop
     while ((iteration < this.maxIterations) && this._stack.length > 0) {
-      console.log(`%cLANGKAH KE-${iteration}`, colorizer)
-      this.solveNextIteration()
-      console.log('------------------------------------------------------------')
+      if (options.logging) console.log(`%cLANGKAH KE-${iteration}`, colorizer)
+      this.solveNextIteration(options)
+      if (options.logging) console.log('------------------------------------------------------------')
       iteration++
     }
 
-    console.log('%cHasil iterasi terakhir:', colorizer)
-    this.printCurrentIteration()
+    if (options.logging) console.log('%cHasil iterasi terakhir:', colorizer)
+    if (options.draw) GSP.printStateObject(this.getCurrentStateObject())
+    if (options.logging) this.printCurrentIteration()
 
     if (iteration >= this.maxIterations)
     throw new Error('iterasi lebih dari batas maksimum, memberhentikan')
