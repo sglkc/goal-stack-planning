@@ -6,16 +6,23 @@ export default defineConfig({
   input: 'src/GSP.ts',
   output: [
     {
-      file: 'dist/GSP.js',
-      format: 'umd',
-      name: 'GSP'
+      file: 'dist/GSP.cjs',
+      format: 'cjs',
+      sourcemap: true
     },
     {
-      file: 'dist/GSP.min.js',
+      file: 'dist/GSP.js',
       format: 'umd',
       name: 'GSP',
-      plugins: [terser()]
+      sourcemap: true
     }
   ],
-  plugins: [typescript()]
+  plugins: [
+    typescript(),
+    terser({
+      compress: true,
+      keep_fnames: true,
+      mangle: true
+    })
+  ]
 })

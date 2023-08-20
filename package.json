@@ -1,6 +1,6 @@
 {
   "name": "@sglkc/gsp",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "Blocks world library implementation for Goal Stack Planning",
   "keywords": [
     "ai",
@@ -12,9 +12,9 @@
     "block-world-problem"
   ],
   "type": "module",
-  "main": "dist/GSP.js",
+  "main": "dist/GSP.cjs",
   "module": "dist/GSP.js",
-  "browser": "dist/GSP.min.js",
+  "browser": "dist/GSP.js",
   "types": "dist/GSP.d.ts",
   "files": [
     "/dist"

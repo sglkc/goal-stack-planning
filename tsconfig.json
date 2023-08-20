@@ -4,12 +4,12 @@
     "module": "es2022",
     "target": "es2022",
     "allowJs": true,
+    "declaration": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "strict": true
+    "strict": true,
+    "outDir": "dist"
   },
-  "include": [
-    "src/**/*.ts",
-    "rollup.config.ts"
-  ]
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
