@@ -1,10 +1,11 @@
 {
   "name": "@sglkc/gsp",
-  "version": "1.0.0",
+  "version": "1.0.0-beta",
   "description": "Blocks world library implementation for Goal Stack Planning",
   "keywords": [
     "ai",
     "artificial-intelligence",
+    "planning",
     "goal-stack-planning",
     "gsp",
     "blocks-world"

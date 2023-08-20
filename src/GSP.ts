@@ -166,7 +166,7 @@ export default class GSP {
     }
 
     sorted.forEach((state) => {
-      const [operator, A, B] = state.match(/\w+/ig)
+      const [operator, A, B] = state.match(/\w+/ig) as RegExpMatchArray
 
       switch (operator) {
         case 'ARMEMPTY': break
@@ -182,7 +182,7 @@ export default class GSP {
       }
     })
 
-    stacks.forEach(([A, B]) => object.table.find((tb) => tb.at(-1) === B).push(A))
+    stacks.forEach(([A, B]) => object.table.find((tb) => tb.at(-1) === B)!.push(A))
 
     return object
   }
@@ -209,7 +209,7 @@ export default class GSP {
 
     if (!stateMatch) return []
 
-    const [, a, b] = stateMatch.match(/\w+/ig)
+    const [, a, b] = stateMatch.match(/\w+/ig) as RegExpMatchArray
 
     return [a, b]
   }
@@ -228,7 +228,7 @@ export default class GSP {
       const finalStates = this.applyPAD('D', addedStates, operator, [A, B])
 
       this._state.push(finalStates)
-      return
+      return []
     }
 
     const conditions = GSP.PAD[operator][pad].map((condition) => {
@@ -315,7 +315,7 @@ export default class GSP {
     if (!currentState) throw new Error('state kosong, panggil prepare() dahulu')
     if (!currentSlot) throw new Error('stack kosong, tidak dapat melanjutkan')
 
-    const [slotName, A, B] = currentSlot.match(/\w+/ig)
+    const [slotName, A, B] = currentSlot.match(/\w+/ig) as RegExpMatchArray
     const nextSlotMatches = nextSlot.match(/\w+/ig)
 
     if (options.draw && options.logging) GSP.printStateObject(this.getCurrentStateObject())
@@ -334,8 +334,8 @@ export default class GSP {
     // Jika queue teratas tidak terdapat slot saat ini, maka masukkan
     // Referensi PDF Planning GSP CP: Langkah 3 Kondisi 4
     if (GSP.OPERATORS.includes(slotName as GSPOperator)) {
-      const operation = this._stack.pop()
-      const [operator] = operation.match(/\w+/ig)
+      const operation = this._stack.pop() as string
+      const [operator] = operation.match(/\w+/ig) as RegExpMatchArray
 
       if (this._queue.at(-1) !== operation) {
         this._queue.push(operation)
@@ -361,8 +361,8 @@ export default class GSP {
       if (conflict) return void this._stack.push(conflict)
       if (!this._stack.length) return
       if (GSP.OPERATORS.includes(nextSlotName)) {
-        const operation = this._stack.pop()
-        const [operator, A, B] = operation.match(/\w+/ig)
+        const operation = this._stack.pop() as string
+        const [operator, A, B] = operation.match(/\w+/ig) as RegExpMatchArray
 
         this._queue.push(operation)
         this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
@@ -414,7 +414,7 @@ export default class GSP {
         } break
         case 'ARMEMPTY': {
           const [newA] = this.getBlockFromStates(currentState, 'HOLDING', [])
-          applyPreconditions('PUTDOWN', [newA])
+          applyPreconditions('PUTDOWN', [newA!])
         } break
       }
 
