@@ -1,83 +1,74 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
     <title>GSP</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind-compat.min.css">
     <style>[un-cloak]{display: none;}</style>
     <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@sglkc/gsp" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@sglkc/gsp@latest" defer></script>
     <script src="./script.js" defer></script>
     <script>
 window.__unocss = {
   shortcuts: {
-    'item-container': 'flex flex-col gap-2 min-h-0',
+    'item-container': 'flex flex-col gap-2 min-h-128 overflow-auto',
     'item-title': 'font-bold text-center text-lg',
-    'state-scene': 'p-1 min-h-28',
+    'state-scene': 'p-1 min-h-16 empty:outline empty:outline-1',
     state: 'relative pt-28 w-full flex justify-center items-center outline-1 outline-solid',
     arm: 'absolute top-4 mt-8 px-4 py-2 empty:outline-0 outline-1 outline-solid',
     table: 'px-8 flex gap-8',
     blocks: 'mt-auto',
     block: 'outline-1 outline-solid px-4 py-2',
     button: 'px-4 py-2 rounded text-light',
-    'slot-list': 'p-1 flex flex-col overflow-auto list-decimal list-inside',
-    slot: 'p-1 outline outline-1 last:bg-light/10'
+    'slot-list': 'p-1 min-h-16 flex flex-col overflow-auto list-decimal list-inside'
+      + ' empty:before:content-["Currently_empty"] before:text-center',
+    slot: 'p-1 outline outline-1 last:bg-light/15'
   }
 }
     </script>
   </head>
-  <body class="bg-dark text-light text-xs" un-cloak>
-    <div class="fixed inset-0 flex flex-col justify-between">
+  <body class="bg-dark text-light text-xs overflow-hidden" un-cloak>
+
+    <li id="slot-placeholder" class="slot"></li>
+
+    <div id="state-placeholder" class="state">
+      <p class="absolute px-2 top-2 text-center"></p>
+      <div class="arm"></div>
+      <div class="table"></div>
+    </div>
+
+    <div class="fixed inset-0 flex flex-col justify-between overflow-hidden">
       <nav class="py-4 bg-dark-200">
         <h1 class="font-bold text-base text-center">
           Block World Problem Goal Stack Planning
         </h1>
       </nav>
 
-      <main class="p-4 grid grid-cols-3 grow-1 gap-4 overflow-auto">
-        <section id="stack-container" class="item-container">
-          <h1 class="item-title">STACK</h1>
-          <ol id="stack" class="slot-list flex-col-reverse grow-1">
-            <li class="slot">ONTABLE(A) ^ ONTABLE(A) ^ ONTABLE(C) ^ ARMEMPTY</li>
-          </ol>
-          <h1 class="item-title">QUEUE</h1>
-          <ol id="queue" class="slot-list">
-            <li class="slot">PUTDOWN(A)</li>
-          </ol>
+      <main class="p-4 grid grid-cols-1 md:grid-cols-3 grow-1 gap-4 overflow-auto">
+        <section class="item-container md:order-3">
+          <h1 class="item-title">INITIAL STATE</h1>
+          <div id="initial-state" class="state-scene"></div>
+          <h1 class="item-title">GOAL STATE</h1>
+          <div id="goal-state" class="state-scene"></div>
+          <p class="italic">
+            *Block position may be different because the condition doesn't account for position
+          </p>
         </section>
 
-        <section id="state-container" class="item-container">
+        <section class="item-container md:order-2">
           <h1 class="item-title">STATE</h1>
           <div id="state-scene" class="state-scene">
             <div class="state"></div>
-            <div id="state-placeholder" class="state">
-              <p class="absolute px-2 top-2 text-center"></p>
-              <div class="arm"></div>
-              <div class="table"></div>
-            </div>
           </div>
-          <ol id="states" class="slot-list grow-1">
-            <li class="slot">ONTABLE(A) ^ ON(C,B) ^ ON(B,A) ^ CLEAR(C) ^ ARMEMPTY</li>
-          </ol>
+          <ol id="state" class="slot-list grow-1"></ol>
         </section>
 
-        <section id="stack-container" class="item-container">
-          <h1 class="item-title">INITIAL STATE</h1>
-          <div id="initial-state" class="state-scene">
-            <div class="state">
-              <p class="absolute top-4 text-center"></p>
-              <div class="table">
-                <div class="blocks"><div class="block">C</div></div>
-              </div>
-            </div>
-          </div>
-          <h1 class="item-title">GOAL STATE</h1>
-          <div id="goal-state" class="state-scene">
-            <div class="state">
-              <p class="absolute top-4 text-center"></p>
-              <div class="table">
-                <div class="blocks"><div class="block">C</div></div>
-              </div>
-            </div>
-          </div>
+        <section class="item-container md:order-1">
+          <h1 class="item-title">STACK</h1>
+          <ol id="stack" class="slot-list flex-col-reverse grow-1"></ol>
+          <h1 class="item-title">QUEUE</h1>
+          <ol id="queue" class="slot-list"></ol>
         </section>
       </main>
 

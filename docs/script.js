@@ -1,10 +1,21 @@
 const stateSceneElement = document.querySelector('#state-scene')
+const stackElement = document.querySelector('#stack')
+const queueElement = document.querySelector('#queue')
+const stateElement = document.querySelector('#state')
+
 const originalStatePlaceholderElement = document.querySelector('#state-placeholder')
 const statePlaceholderElement = originalStatePlaceholderElement.cloneNode(true)
 
 statePlaceholderElement.removeAttribute('id')
 statePlaceholderElement.classList.remove('hidden')
 originalStatePlaceholderElement.remove()
+
+const originalSlotElement = document.querySelector('#slot-placeholder')
+const slotPlaceholderElement = originalSlotElement.cloneNode(true)
+
+statePlaceholderElement.removeAttribute('id')
+statePlaceholderElement.classList.remove('hidden')
+originalSlotElement.remove()
 
 function createStateElement(stateObject) {
   const stateElement = statePlaceholderElement.cloneNode(true)
@@ -57,9 +68,8 @@ const GSPGoalState = {
 const initialStateElement = createStateElement(GSPInitialState)
 const goalStateElement = createStateElement(GSPGoalState)
 
-document.querySelector('#initial-state').replaceChildren(initialStateElement.cloneNode(true))
+document.querySelector('#initial-state').replaceChildren(initialStateElement)
 document.querySelector('#goal-state').replaceChildren(goalStateElement)
-stateSceneElement.replaceChildren(initialStateElement)
 
 const gsp = new GSP(GSPInitialState, GSPGoalState)
 let currentStateString = ''
@@ -70,36 +80,47 @@ gsp.solveNextIteration({ draw: true, logging: true })
 
 function resetGSP() {
   step = 0
+  gsp._stack.length = 0
+  gsp._queue.length = 0
+  gsp._state.length = 0
+  stateSceneElement.replaceChildren(statePlaceholderElement)
+  updateStackQueueState()
   gsp.prepare()
-  stateSceneElement.innerHTML = ''
-  nextIteration()
 }
 
 function nextIteration() {
-  if (!gsp._state.length) {
-    resetGSP()
-    nextIteration()
-    return
-  }
-
   if (!gsp._stack.length) return console.error('step habis')
 
   const stateObject = gsp.getCurrentStateObject()
-  //const stateString = gsp._state.at(-1).join(' ^ ')
-
-  //if (stateString === currentStateString) {
-  //  gsp.solveNextIteration()
-  //  nextIteration()
-  //  return
-  //}
-
-  //currentStateString = stateString
   const stateElement = createStateElement(stateObject)
 
   stateSceneElement.replaceChildren(stateElement)
-  stateElement.scrollIntoView({ behavior: 'smooth' })
   gsp.solveNextIteration()
+  updateStackQueueState()
   step++
+}
+
+function updateStackQueueState() {
+  stackElement.replaceChildren()
+  gsp._stack.forEach((slot) => {
+    const slotElement = slotPlaceholderElement.cloneNode(true)
+    slotElement.innerText = slot
+    stackElement.append(slotElement)
+  })
+
+  queueElement.replaceChildren()
+  gsp._queue.forEach((slot) => {
+    const slotElement = slotPlaceholderElement.cloneNode(true)
+    slotElement.innerText = slot
+    queueElement.append(slotElement)
+  })
+
+  stateElement.replaceChildren()
+  gsp._state.forEach((slot) => {
+    const slotElement = slotPlaceholderElement.cloneNode(true)
+    slotElement.innerText = slot.join(' ^ ')
+    stateElement.append(slotElement)
+  })
 }
 
 document.querySelector('#reset').addEventListener('click', resetGSP)
