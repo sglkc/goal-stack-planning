@@ -9,42 +9,83 @@
     <script>
 window.__unocss = {
   shortcuts: {
-    step: 'relative pt-40 w-full max-w-128 flex justify-center items-center mx-auto outline-1 outline-solid',
-    'step-info': 'absolute top-4',
-    arm: 'absolute top-4 mt-12 px-4 py-2 empty:outline-0 outline-1 outline-solid',
+    'item-container': 'flex flex-col gap-2 min-h-0',
+    'item-title': 'font-bold text-center text-lg',
+    'state-scene': 'p-1 min-h-28',
+    state: 'relative pt-28 w-full flex justify-center items-center outline-1 outline-solid',
+    arm: 'absolute top-4 mt-8 px-4 py-2 empty:outline-0 outline-1 outline-solid',
     table: 'px-8 flex gap-8',
     blocks: 'mt-auto',
     block: 'outline-1 outline-solid px-4 py-2',
-    button: 'px-4 py-2 rounded text-white'
+    button: 'px-4 py-2 rounded text-light',
+    'slot-list': 'p-1 flex flex-col overflow-auto list-decimal list-inside',
+    slot: 'p-1 outline outline-1 last:bg-light/10'
   }
 }
     </script>
   </head>
-  <body class="bg-dark text-light" un-cloak>
-    <main class="fixed inset-0 flex flex-col justify-between">
-      <section class="py-4 bg-dark-200">
-        <h1 class="font-black text-xl text-center">
+  <body class="bg-dark text-light text-xs" un-cloak>
+    <div class="fixed inset-0 flex flex-col justify-between">
+      <nav class="py-4 bg-dark-200">
+        <h1 class="font-bold text-base text-center">
           Block World Problem Goal Stack Planning
         </h1>
-      </section>
-      <section id="main" class="px-4 py-8 flex flex-col grow-1 gap-8 overflow-auto">
-        <div id="step-placeholder" class="step hidden">
-          <p class="step-info">Step ke-<span class="step-number"></span></p>
-          <div class="arm"></div>
-          <div class="table">
-            <!--
-            <div class="blocks">
-              <div class="block"></div>
+      </nav>
+
+      <main class="p-4 grid grid-cols-3 grow-1 gap-4 overflow-auto">
+        <section id="stack-container" class="item-container">
+          <h1 class="item-title">STACK</h1>
+          <ol id="stack" class="slot-list flex-col-reverse grow-1">
+            <li class="slot">ONTABLE(A) ^ ONTABLE(A) ^ ONTABLE(C) ^ ARMEMPTY</li>
+          </ol>
+          <h1 class="item-title">QUEUE</h1>
+          <ol id="queue" class="slot-list">
+            <li class="slot">PUTDOWN(A)</li>
+          </ol>
+        </section>
+
+        <section id="state-container" class="item-container">
+          <h1 class="item-title">STATE</h1>
+          <div id="state-scene" class="state-scene">
+            <div class="state"></div>
+            <div id="state-placeholder" class="state">
+              <p class="absolute px-2 top-2 text-center"></p>
+              <div class="arm"></div>
+              <div class="table"></div>
             </div>
-            -->
           </div>
-        </div>
-      </section>
-      <section class="py-4 bg-dark-200 flex justify-center gap-4">
+          <ol id="states" class="slot-list grow-1">
+            <li class="slot">ONTABLE(A) ^ ON(C,B) ^ ON(B,A) ^ CLEAR(C) ^ ARMEMPTY</li>
+          </ol>
+        </section>
+
+        <section id="stack-container" class="item-container">
+          <h1 class="item-title">INITIAL STATE</h1>
+          <div id="initial-state" class="state-scene">
+            <div class="state">
+              <p class="absolute top-4 text-center"></p>
+              <div class="table">
+                <div class="blocks"><div class="block">C</div></div>
+              </div>
+            </div>
+          </div>
+          <h1 class="item-title">GOAL STATE</h1>
+          <div id="goal-state" class="state-scene">
+            <div class="state">
+              <p class="absolute top-4 text-center"></p>
+              <div class="table">
+                <div class="blocks"><div class="block">C</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <section class="py-4 bg-dark-200 flex justify-center gap-4 text-sm">
         <button id="next" class="button bg-blue-800">Next</button>
         <button id="finish" class="button bg-blue-800">Finish</button>
         <button id="reset" class="button bg-red-800">Reset</button>
       </section>
-    </main>
+    </div>
   </body>
 </html>
