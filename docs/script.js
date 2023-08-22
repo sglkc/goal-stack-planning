@@ -1,10 +1,42 @@
-const mainElement = document.getElementById('main')
-const originalStepPlaceholderElement = document.getElementById('step-placeholder')
-const stepPlaceholderElement = originalStepPlaceholderElement.cloneNode(true)
+const stateSceneElement = document.querySelector('#state-scene')
+const originalStatePlaceholderElement = document.querySelector('#state-placeholder')
+const statePlaceholderElement = originalStatePlaceholderElement.cloneNode(true)
 
-stepPlaceholderElement.removeAttribute('id')
-stepPlaceholderElement.classList.remove('hidden')
-originalStepPlaceholderElement.remove()
+statePlaceholderElement.removeAttribute('id')
+statePlaceholderElement.classList.remove('hidden')
+originalStatePlaceholderElement.remove()
+
+function createStateElement(stateObject) {
+  const stateElement = statePlaceholderElement.cloneNode(true)
+  const armElement = stateElement.querySelector('.arm')
+  const tableElement = stateElement.querySelector('.table')
+
+  if (stateObject.arm) {
+    armElement.innerText = stateObject.arm
+  } else {
+    armElement.remove()
+  }
+
+  stateElement.querySelector('p').innerText = GSP
+    .generateStateConditions(stateObject).join(' ^ ')
+
+  stateObject.table.forEach((blocks) => {
+    const blocksElement = document.createElement('div')
+
+    blocksElement.classList.add('blocks')
+    tableElement.insertAdjacentElement('beforeend', blocksElement)
+
+    blocks.forEach((block) => {
+      const blockElement = document.createElement('div')
+
+      blockElement.innerText = block
+      blockElement.classList.add('block')
+      blocksElement.insertAdjacentElement('afterbegin', blockElement)
+    })
+  })
+
+  return stateElement
+}
 
 const GSPInitialState = {
   arm: null,
@@ -22,15 +54,25 @@ const GSPGoalState = {
   ]
 }
 
-const gsp = new GSP(GSPInitialState, GSPGoalState)
+const initialStateElement = createStateElement(GSPInitialState)
+const goalStateElement = createStateElement(GSPGoalState)
 
-let step = 0
+document.querySelector('#initial-state').replaceChildren(initialStateElement.cloneNode(true))
+document.querySelector('#goal-state').replaceChildren(goalStateElement)
+stateSceneElement.replaceChildren(initialStateElement)
+
+const gsp = new GSP(GSPInitialState, GSPGoalState)
 let currentStateString = ''
+let step = 0
+
+gsp.prepare()
+gsp.solveNextIteration({ draw: true, logging: true })
 
 function resetGSP() {
   step = 0
   gsp.prepare()
-  mainElement.innerHTML = ''
+  stateSceneElement.innerHTML = ''
+  nextIteration()
 }
 
 function nextIteration() {
@@ -43,40 +85,19 @@ function nextIteration() {
   if (!gsp._stack.length) return console.error('step habis')
 
   const stateObject = gsp.getCurrentStateObject()
-  const stateString = gsp._state.at(-1).join(' ^ ')
+  //const stateString = gsp._state.at(-1).join(' ^ ')
 
-  if (stateString === currentStateString) {
-    gsp.solveNextIteration()
-    nextIteration()
-    return
-  }
+  //if (stateString === currentStateString) {
+  //  gsp.solveNextIteration()
+  //  nextIteration()
+  //  return
+  //}
 
-  currentStateString = stateString
+  //currentStateString = stateString
+  const stateElement = createStateElement(stateObject)
 
-  const stepElement = stepPlaceholderElement.cloneNode(true)
-  const armElement = stepElement.querySelector('.arm')
-  const tableElement = stepElement.querySelector('.table')
-
-  stepElement.querySelector('.step-number').innerText = step
-
-  stateObject.table.forEach((blocks) => {
-    const blocksElement = document.createElement('div')
-
-    blocksElement.classList.add('blocks')
-    tableElement.insertAdjacentElement('beforeend', blocksElement)
-
-    blocks.forEach((block) => {
-      const blockElement = document.createElement('div')
-
-      blockElement.innerText = block
-      blockElement.classList.add('block')
-      blocksElement.insertAdjacentElement('afterbegin', blockElement)
-    })
-  })
-
-  armElement.innerText = stateObject.arm
-  mainElement.append(stepElement)
-  stepElement.scrollIntoView({ behavior: 'smooth' })
+  stateSceneElement.replaceChildren(stateElement)
+  stateElement.scrollIntoView({ behavior: 'smooth' })
   gsp.solveNextIteration()
   step++
 }
@@ -87,3 +108,4 @@ document.querySelector('#finish').addEventListener('click', () => {
   if (!gsp._state.length) resetGSP()
   while (gsp._stack.length > 0) nextIteration()
 })
+

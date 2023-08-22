@@ -15,6 +15,12 @@ export type GSPSolveOptions = {
   logging?: boolean
 }
 
+export type GSPIterationReturn = void | {
+  op: 'push' | 'pop'
+  object: 'stack' | 'queue' | 'state'
+  element: string
+}
+
 export default class GSP {
   // Konstanta kondisi pada stack
   static CONDITIONS = ['CLEAR', 'ON', 'ONTABLE', 'HOLDING', 'ARMEMPTY'] as const
@@ -307,7 +313,7 @@ export default class GSP {
   }
 
   // Lanjutkan penyelesaian ke iterasi selanjutnya
-  solveNextIteration(options: GSPSolveOptions = {}): void {
+  solveNextIteration(options: GSPSolveOptions = {}): GSPIterationReturn {
     const currentSlot = this._stack.at(-1)
     const nextSlot = this._stack.at(-2) ?? ''
     const currentState = this._state.at(-1)
@@ -327,7 +333,11 @@ export default class GSP {
     if (currentState.includes(currentSlot) && nextSlotMatches) {
       const nextSlotName = nextSlotMatches[0] as GSPOperator
 
-      if (!GSP.OPERATORS.includes(nextSlotName)) return void this._stack.pop()
+      if (!GSP.OPERATORS.includes(nextSlotName)) return {
+        op: 'pop',
+        object: 'stack',
+        element: this._stack.pop()!
+      }
     }
 
     // Jika state saat ini terdapat slot saat ini, maka pop dari stack
@@ -342,6 +352,12 @@ export default class GSP {
         this.applyPAD('AD', currentState, operator as GSPOperator, [A, B])
 
         if (options.draw && !options.logging) GSP.printStateObject(this.getCurrentStateObject())
+
+        return {
+          op: 'push',
+          object: 'queue',
+          element: operation
+        }
       }
 
       return
@@ -355,11 +371,23 @@ export default class GSP {
     if (currentSlot.includes('^') || (slotName === 'HOLDING' && GSP.OPERATORS.includes(nextSlotName))) {
       const slotConditions = currentSlot.split(' ^ ')
       const conflict = slotConditions.find((op) => !currentState.includes(op))
+      const popped = this._stack.pop()!
 
-      this._stack.pop()
+      if (conflict) {
+        this._stack.push(conflict)
+        return {
+          op: 'push',
+          object: 'stack',
+          element: conflict
+        }
+      }
 
-      if (conflict) return void this._stack.push(conflict)
-      if (!this._stack.length) return
+      if (!this._stack.length) return {
+        op: 'push',
+        object: 'stack',
+        element: popped
+      }
+
       if (GSP.OPERATORS.includes(nextSlotName)) {
         const operation = this._stack.pop() as string
         const [operator, A, B] = operation.match(/\w+/ig) as RegExpMatchArray
@@ -369,7 +397,11 @@ export default class GSP {
 
         if (options.draw && !options.logging) GSP.printStateObject(this.getCurrentStateObject())
 
-        return
+        return {
+          op: 'push',
+          object: 'stack',
+          element: operation
+        }
       }
     }
 
@@ -380,7 +412,7 @@ export default class GSP {
       const applyPreconditions = (operator: GSPOperator, blocks: string[]) =>
         this.applyPAD('P', currentState, operator, blocks)
 
-      this._stack.pop()
+      const element = this._stack.pop()!
 
       switch (slotName) {
         case 'CLEAR': {
@@ -418,7 +450,11 @@ export default class GSP {
         } break
       }
 
-      return
+      return {
+        op: 'pop',
+        object: 'stack',
+        element
+      }
     }
   }
 
