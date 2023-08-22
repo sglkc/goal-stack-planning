@@ -1,0 +1,50 @@
+<html>
+  <head>
+    <title>GSP</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind-compat.min.css">
+    <style>[un-cloak]{display: none;}</style>
+    <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@sglkc/gsp" defer></script>
+    <script src="./script.js" defer></script>
+    <script>
+window.__unocss = {
+  shortcuts: {
+    step: 'relative pt-40 w-full max-w-128 flex justify-center items-center mx-auto outline-1 outline-solid',
+    'step-info': 'absolute top-4',
+    arm: 'absolute top-4 mt-12 px-4 py-2 empty:outline-0 outline-1 outline-solid',
+    table: 'px-8 flex gap-8',
+    blocks: 'mt-auto',
+    block: 'outline-1 outline-solid px-4 py-2',
+    button: 'px-4 py-2 rounded text-white'
+  }
+}
+    </script>
+  </head>
+  <body class="bg-dark text-light" un-cloak>
+    <main class="fixed inset-0 flex flex-col justify-between">
+      <section class="py-4 bg-dark-200">
+        <h1 class="font-black text-xl text-center">
+          Block World Problem Goal Stack Planning
+        </h1>
+      </section>
+      <section id="main" class="px-4 py-8 flex flex-col grow-1 gap-8 overflow-auto">
+        <div id="step-placeholder" class="step hidden">
+          <p class="step-info">Step ke-<span class="step-number"></span></p>
+          <div class="arm"></div>
+          <div class="table">
+            <!--
+            <div class="blocks">
+              <div class="block"></div>
+            </div>
+            -->
+          </div>
+        </div>
+      </section>
+      <section class="py-4 bg-dark-200 flex justify-center gap-4">
+        <button id="next" class="button bg-blue-800">Next</button>
+        <button id="finish" class="button bg-blue-800">Finish</button>
+        <button id="reset" class="button bg-red-800">Reset</button>
+      </section>
+    </main>
+  </body>
+</html>
