@@ -164,7 +164,7 @@ export default class GSP {
 
   // Membuat state object dari state array string
   static generateStateObject(states: string[]): GSPStateObject {
-    const stacks: string[][] = []
+    const stacks: Set<string[]> = new Set()
     const sorted = states.sort((a, b) => a.localeCompare(b))
     const object: GSPStateObject = {
       arm: null,
@@ -183,12 +183,22 @@ export default class GSP {
           object.table.push([A])
           break
         case 'ON':
-          stacks.push([A, B])
+          stacks.add([A, B])
           break
       }
     })
 
-    stacks.forEach(([A, B]) => object.table.find((tb) => tb.at(-1) === B)!.push(A))
+    while (stacks.size) {
+      stacks.forEach((stack) => {
+        const [A, B] = stack
+        const found = object.table.find((tb) => tb.at(-1) === B)
+
+        if (found) {
+          found.push(A)
+          stacks.delete(stack)
+        }
+      })
+    }
 
     return object
   }

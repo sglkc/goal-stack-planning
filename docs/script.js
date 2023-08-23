@@ -52,16 +52,15 @@ function createStateElement(stateObject) {
 const GSPInitialState = {
   arm: null,
   table: [
-    ['A', 'B', 'C'],
+    ['C', 'B', 'A'],
   ]
 }
 
 const GSPGoalState = {
   arm: null,
   table: [
+    ['A', 'C'],
     ['B'],
-    ['A'],
-    ['C'],
   ]
 }
 
