@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind-compat.min.css">
     <style>[un-cloak]{display: none;}</style>
     <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@sglkc/gsp@latest" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@sglkc/gsp@1.0.0-beta.5" defer></script>
     <script src="./script.js" defer></script>
     <script>
 window.__unocss = {
@@ -21,7 +21,7 @@ window.__unocss = {
     blocks: 'mt-auto',
     block: 'outline-1 outline-solid px-4 py-2',
     button: 'px-4 py-2 rounded text-light',
-    'slot-list': 'p-1 min-h-16 flex flex-col overflow-auto list-decimal list-inside'
+    'slot-list': 'p-1 min-h-16 flex flex-col overflow-auto list-decimal list-inside scroll-pa-1'
       + ' empty:before:content-["Currently_empty"] before:text-center',
     slot: 'p-1 outline outline-1 last:bg-light/15'
   }
@@ -61,7 +61,7 @@ window.__unocss = {
           <div id="state-scene" class="state-scene">
             <div class="state"></div>
           </div>
-          <ol id="state" class="slot-list grow-1"></ol>
+          <ol id="state" class="slot-list flex-col-reverse shrink-100"></ol>
         </section>
 
         <section class="item-container md:order-1">
@@ -72,7 +72,8 @@ window.__unocss = {
         </section>
       </main>
 
-      <section class="py-4 bg-dark-200 flex justify-center gap-4 text-sm">
+      <section class="py-4 bg-dark-200 flex flex-wrap justify-center gap-2">
+        <button id="set-states" class="button bg-green-800">Set Initial & Goal</button>
         <button id="next" class="button bg-blue-800">Next</button>
         <button id="finish" class="button bg-blue-800">Finish</button>
         <button id="reset" class="button bg-red-800">Reset</button>

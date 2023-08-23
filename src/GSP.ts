@@ -146,7 +146,9 @@ export default class GSP {
 
       reversedStack.forEach((block, blockIndex) => {
         if (blockIndex === reversedStack.length - 1) {
-          return conditions.push(`ONTABLE(${block})`)
+          conditions.push(`ONTABLE(${block})`)
+          conditions.push(`CLEAR(${block})`)
+          return
         }
 
         const nextBlock = reversedStack.at(blockIndex + 1)

@@ -29,7 +29,9 @@ function createStateElement(stateObject) {
   }
 
   stateElement.querySelector('p').innerText = GSP
-    .generateStateConditions(stateObject).join(' ^ ')
+    .generateStateConditions(stateObject)
+    .sort((a, b) => b.localeCompare(a))
+    .join(' ^ ')
 
   stateObject.table.forEach((blocks) => {
     const blocksElement = document.createElement('div')
@@ -49,14 +51,14 @@ function createStateElement(stateObject) {
   return stateElement
 }
 
-const GSPInitialState = {
+const defaultInitial = {
   arm: null,
   table: [
     ['C', 'B', 'A'],
   ]
 }
 
-const GSPGoalState = {
+const defaultGoal = {
   arm: null,
   table: [
     ['A', 'C'],
@@ -64,18 +66,9 @@ const GSPGoalState = {
   ]
 }
 
-const initialStateElement = createStateElement(GSPInitialState)
-const goalStateElement = createStateElement(GSPGoalState)
-
-document.querySelector('#initial-state').replaceChildren(initialStateElement)
-document.querySelector('#goal-state').replaceChildren(goalStateElement)
-
-const gsp = new GSP(GSPInitialState, GSPGoalState)
+const gsp = new GSP(defaultInitial, defaultGoal)
 let currentStateString = ''
 let step = 0
-
-gsp.prepare()
-gsp.solveNextIteration({ draw: true, logging: true })
 
 function resetGSP() {
   step = 0
@@ -87,8 +80,30 @@ function resetGSP() {
   gsp.prepare()
 }
 
+function setInitialGoal(initial, goal) {
+  initial ||= defaultInitial
+  goal ||= defaultGoal
+
+  const initialStateElement = createStateElement(initial)
+  const goalStateElement = createStateElement(goal)
+
+  gsp.initial = initial
+  gsp.goal = goal
+
+  document.querySelector('#initial-state').replaceChildren(initialStateElement)
+  document.querySelector('#goal-state').replaceChildren(goalStateElement)
+  resetGSP()
+}
+
 function nextIteration() {
-  if (!gsp._stack.length) return console.error('step habis')
+  if (!gsp._stack.length) {
+    updateStackQueueState()
+    setTimeout(() => alert(
+      'Problem has been solved, set another problem or reset current problem'
+      + ' using the buttons below'
+    ), 100)
+    return
+  }
 
   const stateObject = gsp.getCurrentStateObject()
   const stateElement = createStateElement(stateObject)
@@ -117,15 +132,78 @@ function updateStackQueueState() {
   stateElement.replaceChildren()
   gsp._state.forEach((slot) => {
     const slotElement = slotPlaceholderElement.cloneNode(true)
-    slotElement.innerText = slot.join(' ^ ')
+    slotElement.innerText = slot.sort((a, b) => b.localeCompare(a)).join(' ^ ')
     stateElement.append(slotElement)
   })
+
+  setTimeout(() => stateElement.lastChild?.scrollIntoView({ behavior: 'smooth' }), 200)
 }
+
+function setStateInput(name) {
+  const armInput = prompt(`${name} | Arm state (type holding block or leave blank)`)
+  let tableInput = ''
+
+  while (tableInput.length < 1) {
+    tableInput = prompt(
+      `${name} | Table state (Use comma [,] to separate between block stacks)\n`
+      + 'eg. AB, D -> ONTABLE(A) ^ ON(B,A) ^ CLEAR(B) ^ ONTABLE(D)'
+    )
+    if (tableInput.length < 1) alert(`${name} | Table state cannot be empty`)
+  }
+
+  const object = {
+    arm: armInput || null,
+    table: []
+  }
+
+  tableInput.trim().split(',').forEach((table, i) => {
+    object.table.push([])
+    table.trim().split('').forEach((block) => object.table[i].push(block))
+  })
+
+  try {
+    GSP.validateStateObject(object)
+  } catch (error) {
+    alert(`Error setting state for ${name} ` + error)
+  }
+
+  return object
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  resetGSP()
+  setInitialGoal()
+})
+
+document.querySelector('#set-states').addEventListener('click', () => {
+  if (
+    !confirm(
+      'To properly set the states, you have to follow the rules provided,'
+      + ' there will be validation so don\'t worry if you make a mistake'
+    )
+  ) return
+
+  let isError = false
+
+  do {
+    isError = false
+
+    try {
+      const initial = setStateInput('INITIAL')
+      const goal = setStateInput('GOAL')
+
+      setInitialGoal(initial, goal)
+    } catch (error) {
+      isError = true
+      if (!confirm(`Error setting initial and goal state: ${error}\nRetry?`)) return
+    }
+  } while (isError)
+})
 
 document.querySelector('#reset').addEventListener('click', resetGSP)
 document.querySelector('#next').addEventListener('click', nextIteration)
 document.querySelector('#finish').addEventListener('click', () => {
   if (!gsp._state.length) resetGSP()
   while (gsp._stack.length > 0) nextIteration()
+  nextIteration()
 })
-
